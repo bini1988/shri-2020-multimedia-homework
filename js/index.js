@@ -3,6 +3,7 @@ class VideoPlayer {
   constructor(element, url) {
     this.element = element;
     this.url = url;
+    this.wrap = element.querySelector('.players__wrap');
     this.video = element.querySelector('.player__video');
     this.controls = element.querySelector('.player__controls');
     this.bars = element.querySelector('.player__bars');
@@ -20,9 +21,11 @@ class VideoPlayer {
     });
 
     this.element.addEventListener('transitionend', () => {
-      if (!this.isFullScreen) {
-        this.element.style.zIndex = 1;
-      }
+      this.wrap.style.zIndex = null;
+      this.wrap.style.transition = null;
+      this.wrap.style.transform = null;
+      this.element.classList.toggle("player--fullscreen", this.isFullScreen);
+      this.gui.show();
     });
   }
 
@@ -112,28 +115,41 @@ class VideoPlayer {
     `;
   }
 
+  calcFullScreenTransform(element) {
+    const { x, y, width, height } = element.getBoundingClientRect();
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    const scaleX = windowWidth / width;
+    const scaleY = windowHeight / height;
+    const scale = `scale(${scaleX}, ${scaleY})`;
+    const translateX = ((width * scaleX - width) * 0.5  - x) / scaleX;
+    const translateY = ((height * scaleY - height) * 0.5 - y) / scaleY;
+    const translate = `translate3d(${translateX}px, ${translateY}px, 0px)`;
+
+    return `${scale} ${translate}`;
+  }
+
   fullscreen() {
     this.isFullScreen = !this.isFullScreen;
+    this.gui.hide();
 
     if (this.isFullScreen) {
       this.fullscreenGui.name('Exit Full Screen');
 
-      const { x, y, width, height } = this.element.getBoundingClientRect();
-      const windowWidth = window.innerWidth;
-      const windowHeight = window.innerHeight;
-      const scaleX = windowWidth / width;
-      const scaleY = windowHeight / height;
-      const scale = `scale(${scaleX}, ${scaleY})`;
-      const translateX = ((width * scaleX - width) * 0.5  - x) / scaleX;
-      const translateY = ((height * scaleY - height) * 0.5 - y) / scaleY;
-      const translate = `translate3d(${translateX}px, ${translateY}px, 0px)`;
-
-      this.element.style.zIndex = 100;
-      this.element.style.transform = `${scale} ${translate}`;
+      this.wrap.style.zIndex = 100;
+      this.wrap.style.transition = 'all 0.3s ease-in-out';
+      this.wrap.style.transform = this.calcFullScreenTransform(this.wrap);
     } else {
       this.fullscreenGui.name('To Full Screen');
 
-      this.element.style.transform = null;
+      this.wrap.style.zIndex = 100;
+      this.wrap.style.transform = this.calcFullScreenTransform(this.element);
+      this.element.classList.remove("player--fullscreen");
+
+      requestAnimationFrame(() => {
+        this.wrap.style.transition = 'all 0.3s ease-in-out';
+        this.wrap.style.transform = 'scale(1) translate3d(0px, 0px, 0px)';
+      });
     }
   }
 }
