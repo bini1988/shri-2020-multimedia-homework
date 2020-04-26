@@ -8,6 +8,7 @@ class VideoPlayer {
     this.bars = element.querySelector('.player__bars');
     this.barsCanvasCtx = this.bars.getContext('2d');
     this.filters = { brightness: 100, contrast: 100 };
+    this.isFullScreen = false;
 
     this.initGUI();
     this.initVideo();
@@ -15,6 +16,12 @@ class VideoPlayer {
     this.video.addEventListener('volumechange', () => {
       if (!this.audioCtx) {
         this.initBars();
+      }
+    });
+
+    this.element.addEventListener('transitionend', () => {
+      if (!this.isFullScreen) {
+        this.element.style.zIndex = 1;
       }
     });
   }
@@ -27,12 +34,17 @@ class VideoPlayer {
     this.gui = new dat.GUI({ autoPlace: false });
 
     this.gui.add(this.filters, 'brightness')
+      .name('Brightness, %')
       .min(0).max(300).step(10)
       .onChange(() => this.undateFilters());
 
     this.gui.add(this.filters, 'contrast')
+      .name('Contrast, %')
       .min(0).max(300).step(10)
       .onChange(() => this.undateFilters());
+
+    this.fullscreenGui = this.gui.add(this, 'fullscreen')
+      .name('To Full Screen');
 
     this.controls.appendChild(this.gui.domElement);
   }
@@ -98,6 +110,31 @@ class VideoPlayer {
       brightness(${brightness}%)
       contrast(${contrast}%)
     `;
+  }
+
+  fullscreen() {
+    this.isFullScreen = !this.isFullScreen;
+
+    if (this.isFullScreen) {
+      this.fullscreenGui.name('Exit Full Screen');
+
+      const { x, y, width, height } = this.element.getBoundingClientRect();
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+      const scaleX = windowWidth / width;
+      const scaleY = windowHeight / height;
+      const scale = `scale(${scaleX}, ${scaleY})`;
+      const translateX = ((width * scaleX - width) * 0.5  - x) / scaleX;
+      const translateY = ((height * scaleY - height) * 0.5 - y) / scaleY;
+      const translate = `translate3d(${translateX}px, ${translateY}px, 0px)`;
+
+      this.element.style.zIndex = 100;
+      this.element.style.transform = `${scale} ${translate}`;
+    } else {
+      this.fullscreenGui.name('To Full Screen');
+
+      this.element.style.transform = null;
+    }
   }
 }
 
